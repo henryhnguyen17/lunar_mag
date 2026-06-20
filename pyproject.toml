@@ -1,0 +1,10 @@
+[project]
+name = "lunar-mag"
+version = "0.1.0"
+description = "Automated detector groundwork for short lunar magnetic compression events."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
