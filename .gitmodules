@@ -1,0 +1,3 @@
+[submodule "external/42"]
+	path = external/42
+	url = https://github.com/ericstoneking/42.git

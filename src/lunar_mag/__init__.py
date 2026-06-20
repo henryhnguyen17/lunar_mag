@@ -1,20 +1,37 @@
 """Tools for lunar magnetic compression event detection."""
 
 from lunar_mag.features import (
-    enhancement_ratio,
-    event_duration_seconds,
     magnetic_magnitude,
-    orbit_scale_km,
 )
-from lunar_mag.schemas import BenchmarkEvent, EventDetection, MagnetometerSample
+from lunar_mag.geometry import (
+    cartesian_to_selenographic,
+    great_circle_distance_km,
+    state_record_to_orbit_sample,
+)
+from lunar_mag.interpolation import bilinear_interpolate
+from lunar_mag.nasa42 import load_orbit_samples_from_state_log, load_state_log
+from lunar_mag.schemas import (
+    LocalizationResult,
+    MagneticMapRecord,
+    Nasa42StateRecord,
+    NavigationMagnetometerSample,
+    OrbitSample,
+)
+from lunar_mag.scoring import error_reduction, rmse
 
 __all__ = [
-    "BenchmarkEvent",
-    "EventDetection",
-    "MagnetometerSample",
-    "enhancement_ratio",
-    "event_duration_seconds",
+    "LocalizationResult",
+    "MagneticMapRecord",
+    "Nasa42StateRecord",
+    "NavigationMagnetometerSample",
+    "OrbitSample",
+    "bilinear_interpolate",
+    "cartesian_to_selenographic",
+    "error_reduction",
+    "great_circle_distance_km",
+    "load_orbit_samples_from_state_log",
+    "load_state_log",
     "magnetic_magnitude",
-    "orbit_scale_km",
+    "rmse",
+    "state_record_to_orbit_sample",
 ]
-

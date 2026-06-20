@@ -1,0 +1,5 @@
+timestamp_utc,position_x_km,position_y_km,position_z_km,velocity_x_km_s,velocity_y_km_s,velocity_z_km_s,attitude_q0,attitude_q1,attitude_q2,attitude_q3,source_simulator
+2026-01-01T00:00:00,1837.4,0.0,0.0,0.0,1.633,0.0,1.0,0.0,0.0,0.0,NASA 42 sample
+2026-01-01T00:10:00,1581.409,918.700,159.453,-0.817,1.409,0.142,1.0,0.0,0.0,0.0,NASA 42 sample
+2026-01-01T00:20:00,918.700,1581.409,318.906,-1.409,0.817,0.142,1.0,0.0,0.0,0.0,NASA 42 sample
+

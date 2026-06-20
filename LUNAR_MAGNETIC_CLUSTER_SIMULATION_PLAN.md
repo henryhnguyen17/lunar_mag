@@ -1,311 +1,336 @@
-# Lunar Magnetic Compression Event Detector Plan
+# Lunar Magnetic Map-Matching Navigation Plan
 
-## Goal
+## Project Goal
 
-Build and validate an automated detector for short magnetic-field compression events around the Moon. The system should ingest lunar orbiter magnetometer time series, identify sub-10-second magnetic enhancements, classify likely event type, and evaluate results against synthetic truth and published benchmark events.
+Build a lunar orbiter navigation-aid simulator that uses **NASA 42** for spacecraft dynamics and a custom Python layer for lunar magnetic anomaly sensing and map matching.
 
-The project is based on Nakagawa et al. 2023, which reported sub-10-second magnetic enhancements measured by Kaguya/MAP-LMAG at roughly 100 km altitude. The end goal is a reproducible science pipeline that can search Kaguya-style data for more events and test whether those events are linked to lunar geometry, upstream solar-wind discontinuities, or crustal magnetic anomaly context.
+The project tests whether a low lunar orbiter can reduce position uncertainty by comparing a sequence of magnetometer readings against a known lunar magnetic anomaly map.
 
-## Core Research Question
+This is not meant to replace normal navigation. It is a supplemental navigation method that could help when an orbiter passes over distinctive lunar crustal magnetic anomalies.
 
-Can short lunar magnetic compression events be detected automatically in lunar orbiter magnetometer data, and can they be classified using local magnetic signatures plus solar-wind and crustal-field context?
+## Core Question
 
-Secondary research question:
+Can magnetic anomaly sequence matching improve localization for a low lunar orbiter with an already approximate orbit estimate?
 
-How much does event classification improve when local magnetometer features are combined with upstream ACE/WIND/OMNI solar-wind context and Lunar Prospector crustal magnetic anomaly context?
+Supporting questions:
 
-## Physical Context
+- How much does position error improve after magnetic map matching?
+- Which lunar regions produce useful magnetic fingerprints?
+- How sensitive is the method to altitude, magnetometer noise, sensor bias, and map resolution?
+- How much better is sequence matching than using a single magnetic-field reading?
 
-The Moon has no strong present-day global dipole field, but it does have localized crustal magnetic anomalies. Solar wind interaction with the lunar surface and crustal fields can create magnetic perturbations near the Moon.
-
-Nakagawa et al. 2023 found short-period magnetic enhancements with these key properties:
-
-- Spacecraft: Kaguya/SELENE.
-- Instrument: MAP-LMAG magnetometer.
-- Altitude: about `90-110 km`.
-- Sampling: `32 Hz` magnetic-field vectors.
-- Duration: less than `10 s`.
-- Approximate spatial scale: about `10-15 km` along the orbit.
-- Enhancement ratio: roughly `1.5x-3.6x` over the preceding quiet field.
-- Candidate event classes:
-  - `limb_compression`
-  - `discontinuity_compression`
-
-The paper distinguishes two mechanisms:
-
-- Limb compressions near the lunar terminator during relatively steady solar-wind magnetic field conditions.
-- Hot-flow-anomaly-like compressions associated with interplanetary tangential discontinuities, sometimes detected on the nightside.
-
-## Dataset Roles
-
-| Dataset | Role In This Project | Notes |
-| --- | --- | --- |
-| Kaguya/SELENE MAP-LMAG | Primary high-rate magnetometer data for detecting short events. | Best match to Nakagawa et al. because events were found in Kaguya LMAG data. |
-| Kaguya MAP-PACE | Local plasma context where available. | Useful for checking reflected ions and solar-wind conditions near the spacecraft. |
-| ACE MAG/SWEPAM | Upstream solar-wind magnetic field and plasma context. | Used by the paper for solar-wind comparisons. |
-| WIND MFI/SWE | Backup or complementary upstream solar-wind context. | Useful when ACE data are unavailable. |
-| NASA OMNIWeb | Time-shifted solar-wind context near Earth/Moon. | Useful for standardized upstream context and discontinuity flags. |
-| Lunar Prospector MAG/ER | Background crustal magnetic anomaly context. | Use to identify strong crustal anomaly regions, not as the primary short-event detector. |
-| Published lunar crustal field models | Static magnetic anomaly prior. | Useful for asking whether events occur near known anomaly-connected regions. |
-
-Initial source portals:
-
-- NASA PDS Planetary Plasma Interactions node: https://pds-ppi.igpp.ucla.edu/
-- NASA PDS Geosciences Orbital Data Explorer Moon portal: https://ode.rsl.wustl.edu/moon/
-- JAXA DARTS SELENE/Kaguya archive: https://darts.isas.jaxa.jp/planet/pdap/selene/
-- NASA OMNIWeb: https://omniweb.gsfc.nasa.gov/
-- ACE Science Center: http://www.srl.caltech.edu/ACE/ASC/
-
-## Project Architecture
+## High-Level Architecture
 
 ```text
-Kaguya LMAG / synthetic magnetometer time series
-  -> preprocessing
-  -> short enhancement detector
-  -> event feature extraction
-  -> event classification
-  -> verification reports
+NASA 42
+  -> spacecraft time, position, velocity, attitude
 
-Lunar Prospector / crustal field map
-  -> anomaly context features
+Python magnetic sensor layer
+  -> read NASA 42 state logs
+  -> sample lunar magnetic anomaly map
+  -> simulate magnetometer readings
+  -> add noise and bias
 
-ACE / WIND / OMNI solar-wind data
-  -> upstream discontinuity context
-
+Python map-matching layer
+  -> generate candidate orbit offsets
+  -> compare measured vs predicted magnetic sequences
+  -> estimate best position correction
+  -> report localization improvement
 ```
+
+NASA 42 handles spacecraft dynamics. Our code handles magnetic maps, magnetometer simulation, and localization.
+
+## Why NASA 42
+
+NASA 42 is a spacecraft dynamics simulator written mainly in C. It can model spacecraft orbit and attitude dynamics and output time-stepped state information.
+
+Using 42 lets us avoid building an orbital dynamics simulator from scratch. We only need to add the magnetic navigation experiment around its outputs.
+
+42 provides:
+
+- spacecraft position over time
+- spacecraft velocity over time
+- attitude/frame information where available
+- configurable spacecraft dynamics cases
+
+Our Python code provides:
+
+- lunar magnetic anomaly map loading or generation
+- magnetic-field interpolation at spacecraft location
+- synthetic magnetometer measurements
+- noise and bias models
+- map-matching localization
+- performance evaluation
+
+## Scientific Basis
+
+Earth has analogs for this idea:
+
+- Compasses use magnetic direction for heading.
+- Aircraft, drones, and submarines can use magnetic anomaly maps as GPS-denied navigation aids.
+- Satellites often use magnetometers for attitude determination, though Earth orbit has stronger navigation infrastructure.
+
+The Moon is different:
+
+- It has no strong present-day global dipole field.
+- It has localized crustal magnetic anomalies.
+- There is no deployed lunar GPS-like system.
+- Lunar Prospector and Kaguya measured magnetic fields from orbital altitudes relevant to low lunar orbiters.
+
+The idea is to use anomaly patterns as a map fingerprint.
+
+## Key Principle
+
+A single magnetic reading is usually ambiguous:
+
+```text
+|B| = 4.2 nT
+```
+
+Many lunar locations could have the same magnetic magnitude.
+
+A sequence is more useful:
+
+```text
+3.1 nT -> 3.8 nT -> 6.2 nT -> 5.0 nT -> 2.9 nT
+```
+
+That shape may identify a specific path over a distinctive anomaly region.
+
+## Data Sources
+
+| Dataset | Project Role |
+| --- | --- |
+| Lunar Prospector MAG/ER | Primary source for lunar crustal magnetic anomaly context. |
+| Kaguya/SELENE LMAG | Independent magnetic-field data for validation or alternate map products. |
+| Published lunar crustal magnetic-field models | Best first real map input if gridded products are easier than raw mission data. |
+| Apollo surface magnetometers | Local surface constraints, not global orbital navigation maps. |
+| LRO LOLA topography | Optional later context for terrain/elevation, not needed for the first build. |
+
+Source portals:
+
+- NASA PDS Planetary Plasma Interactions node: https://pds-ppi.igpp.ucla.edu/
+- NASA PDS ODE Moon portal: https://ode.rsl.wustl.edu/moon/
+- JAXA DARTS SELENE/Kaguya archive: https://darts.isas.jaxa.jp/planet/pdap/selene/
+- NASA NSSDCA: https://nssdc.gsfc.nasa.gov/
+
+## Altitude Scope
+
+Start with orbital altitudes close to existing magnetic datasets:
+
+- Lunar Prospector primary mission: about `100 km`.
+- Lunar Prospector lower phases: tens of kilometers.
+- Kaguya/SELENE LMAG: commonly about `100 km`, with lower phases depending on mission period.
+- Published magnetic maps may use reference altitudes such as `30 km` or `100 km`.
+
+The first simulator should avoid surface-field extrapolation. It should evaluate magnetic matching at or near the map product's stated reference altitude.
 
 ## Data Model
 
-Use one common time-series record for magnetic data:
+### NASA 42 State Record
 
 - `timestamp_utc`
-- `spacecraft`
+- `position_x_km`
+- `position_y_km`
+- `position_z_km`
+- `velocity_x_km_s`
+- `velocity_y_km_s`
+- `velocity_z_km_s`
+- `attitude_q0`
+- `attitude_q1`
+- `attitude_q2`
+- `attitude_q3`
+- `source_simulator`
+
+### Orbit Sample Record
+
+- `timestamp_utc`
 - `latitude_deg`
 - `longitude_deg`
 - `altitude_km`
-- `x_sse_km`
-- `y_sse_km`
-- `z_sse_km`
+- `velocity_km_s`
+- `orbit_id`
+
+### Magnetic Map Record
+
+- `latitude_deg`
+- `longitude_deg`
+- `altitude_km`
 - `b_x_nt`
 - `b_y_nt`
 - `b_z_nt`
 - `b_total_nt`
-- `sample_rate_hz`
 - `source_id`
+- `reference_frame`
 
-Use one event record for detections:
+### Magnetometer Sample Record
 
-- `event_id`
-- `start_time_utc`
-- `peak_time_utc`
-- `end_time_utc`
-- `duration_s`
+- `timestamp_utc`
+- `latitude_deg`
+- `longitude_deg`
 - `altitude_km`
-- `b_pre_nt`
-- `b_peak_nt`
-- `enhancement_ratio`
-- `delta_direction_deg`
-- `estimated_scale_km`
-- `terminator_distance_km`
-- `dayside_nightside`
-- `upstream_discontinuity_flag`
-- `near_crustal_anomaly_flag`
-- `predicted_class`
-- `confidence`
+- `b_x_nt`
+- `b_y_nt`
+- `b_z_nt`
+- `b_total_nt`
+- `sensor_noise_nt`
+- `sensor_bias_nt`
 
-## Event Detection Method
+### Localization Result Record
 
-Start with deterministic signal processing before trying machine learning.
+- `window_id`
+- `prior_error_km`
+- `posterior_error_km`
+- `error_reduction_km`
+- `error_reduction_percent`
+- `match_score`
+- `window_duration_s`
+- `altitude_km`
+- `region_label`
 
-1. Load magnetic-field vector time series.
-2. Compute `|B|` from vector components.
-3. Estimate a rolling quiet baseline before each candidate window.
-4. Detect candidate enhancements where:
-   - `duration_s < 10`
-   - `delta_B_nt > threshold`
-   - `B_peak / B_pre > ratio_threshold`
-   - the preceding window is relatively quiet
-5. Reject candidates embedded inside larger magnetic disturbances unless explicitly running a permissive search.
-6. Estimate event properties:
-   - start, peak, end
-   - duration
-   - amplitude ratio
-   - direction change
-   - orbit-distance scale
-7. Save detections to an event catalog.
+## Map-Matching Method
 
-Initial thresholds should reproduce the paper's visual search criteria:
+Start with a simple deterministic method.
 
-- Short period: `<10 s`.
-- Magnetic enhancement: `delta |B| > 1.9 nT`.
-- Preceded by a magnetically quiet period.
+1. Use NASA 42 to generate the true spacecraft trajectory.
+2. Sample the magnetic map along that trajectory.
+3. Add simulated magnetometer noise and bias.
+4. Create an uncertain prior trajectory by offsetting the true trajectory.
+5. Generate candidate trajectories near the prior.
+6. Sample the magnetic map along each candidate trajectory.
+7. Compare measured and predicted magnetic sequences.
+8. Pick the candidate with the lowest mismatch.
+9. Compare prior position error against posterior position error.
 
-## Event Classification
+Initial scoring method:
 
-Begin with a rules-based classifier:
+```text
+RMSE = sqrt(mean((B_measured - B_predicted)^2))
+```
 
-| Class | Main Evidence |
-| --- | --- |
-| `limb_compression` | Short enhancement, near terminator, steady upstream solar-wind field, magnetic field flares away from Moon if vector geometry supports it. |
-| `discontinuity_compression` | Short enhancement near an upstream interplanetary magnetic discontinuity, especially tangential discontinuity candidates. |
-| `crustal_anomaly_crossing` | Enhancement aligns with strong static crustal anomaly and lacks transient upstream context. |
-| `solar_wind_noise` | Similar fluctuation appears upstream or lacks lunar geometry consistency. |
-| `unknown` | Detection passes signal criteria but lacks enough context for classification. |
+Start with `b_total_nt`. Later, test vector matching with `b_x_nt`, `b_y_nt`, and `b_z_nt`.
 
-After the rules baseline works, train a small classifier only if there are enough labeled or synthetic examples.
+## Validation Strategy
 
-Potential features:
+The project should measure navigation value, not just generate plots.
 
-- `duration_s`
-- `delta_B_nt`
-- `enhancement_ratio`
-- `delta_direction_deg`
-- rolling pre-event variance
-- local-time geometry
-- dayside/nightside flag
-- distance to terminator
-- upstream magnetic discontinuity score
-- distance to strong crustal anomaly region
-- altitude
+Primary metrics:
 
-## Synthetic Data Generator
+- prior position error in kilometers
+- posterior position error in kilometers
+- error reduction in kilometers
+- error reduction percent
+- false-match rate
+- failure rate
+- sensitivity to noise, bias, altitude, map resolution, and window length
 
-Build a generator before using real Kaguya data so the detector has known truth labels.
+Validation cases:
 
-The generator should create:
+- strong anomaly region
+- weak-field negative-control region
+- high-gradient orbit segment
+- low-gradient orbit segment
+- single-reading matching
+- sequence matching
 
-- Kaguya-like orbit samples at roughly `100 km` altitude.
-- Quiet solar-wind magnetic background.
-- Instrument noise and slow baseline drift.
-- Larger low-frequency magnetic disturbances.
-- Injected short enhancements with Nakagawa-like durations and amplitudes.
-- Optional upstream discontinuity events.
-- Optional crustal anomaly crossings.
+Expected result:
 
-The generator should support event classes:
-
-- `limb_compression`
-- `discontinuity_compression`
-- `crustal_anomaly_crossing`
-- `solar_wind_noise`
-
-## Nakagawa Benchmark Events
-
-Encode the six published events as benchmark targets:
-
-| Event | Date/Time UTC | Duration s | B Peak nT | B Pre nT | Altitude km | Discontinuity |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| 1 | 2008-01-01 13:29:20.0442 | 6.969 | 4.9 | 3.0 | 108 | no |
-| 2 | 2008-03-10 09:26:45.0810 | 2.250 | 6.6 | 4.5 | 91 | no |
-| 3 | 2008-06-08 05:43:06.0615 | 9.969 | 8.5 | 3.7 | 92 | yes |
-| 4 | 2008-08-05 03:28:35.3177 | 9.281 | 3.4 | 0.9 | 90 | yes |
-| 5 | 2008-11-27 04:26:28.0460 | 3.469 | 6.0 | 3.3 | 110 | yes |
-| 6 | 2008-12-21 23:50:28.0383 | 9.969 | 5.8 | 3.6 | 101 | yes |
-
-Use these events in two ways:
-
-- Synthetic reproduction: inject events with matching duration, amplitude, altitude, and class label.
-- Real-data validation: when Kaguya LMAG data are loaded, check whether the detector recovers these timestamps.
-
-## Verification Plan
-
-Verification should happen in layers.
-
-1. Synthetic truth tests:
-   - Inject known events.
-   - Measure precision, recall, F1, timing error, duration error, and amplitude-ratio error.
-2. Paper reproduction tests:
-   - Confirm the detector finds the six Nakagawa benchmark events in synthetic data.
-   - Later confirm it finds them in real Kaguya LMAG intervals.
-3. Negative controls:
-   - Run on quiet intervals before and after events.
-   - Require low false positive rate.
-4. Ablation tests:
-   - Classify with magnetometer-only features.
-   - Classify again with upstream ACE/WIND/OMNI context.
-   - Report how much solar-wind context improves classification.
-5. Physical sanity checks:
-   - Duration should be less than `10 s`.
-   - Spatial scale should be about `10-15 km` for Kaguya-like orbital speed.
-   - Limb-compression candidates should be near the terminator.
-   - Discontinuity-compression candidates should align with upstream magnetic discontinuities.
-   - Events that also appear in upstream data should not be labeled as lunar-generated without caution.
+Magnetic matching should help only in regions with distinctive magnetic gradients. It should fail or provide little value in weak, smooth, or repetitive magnetic regions.
 
 ## Implementation Milestones
 
-### Milestone 1: Project Skeleton
+### Milestone 1: Reorient Codebase
 
-- Create Python package layout.
-- Add data schemas for time-series samples and event detections.
-- Encode the six Nakagawa benchmark events.
-- Add a small test suite for event feature calculations.
+- Rename or refactor existing event-detector code as needed.
+- Add schemas for NASA 42 state records, magnetic maps, orbit samples, magnetometer samples, and localization results.
+- Add math utilities for distance, coordinate conversion, interpolation, and RMSE.
+- Add tests for the new utilities.
 
-### Milestone 2: Synthetic Generator
+### Milestone 2: NASA 42 Trajectory Export
 
-- Generate Kaguya-like magnetometer time series.
-- Inject benchmark-like events.
-- Export synthetic datasets and truth labels.
-- Plot event-centered magnetic-field windows for debugging.
+- Install or link NASA 42 outside this Python package.
+- Configure a simple low lunar orbit case.
+- Export a state log with time, position, velocity, and attitude.
+- Write a Python loader for the 42 state log.
+- Convert 42 Cartesian states to latitude, longitude, altitude, and speed.
 
-### Milestone 3: Detector
+### Milestone 3: Synthetic Magnetic Map
 
-- Implement rolling-baseline enhancement detection.
-- Estimate event start, peak, end, duration, amplitude, and scale.
-- Evaluate synthetic precision and recall.
+- Generate a 2D lunar magnetic anomaly map with localized Gaussian anomaly clusters.
+- Support map queries by latitude and longitude.
+- Add bilinear interpolation.
+- Export the synthetic map for repeatable tests.
+- Add tests for known interpolation cases.
 
-### Milestone 4: Classifier
+### Milestone 4: Magnetometer Simulator
 
-- Add rule-based classification.
-- Add geometry features: terminator proximity, dayside/nightside, altitude.
-- Add optional upstream discontinuity context.
-- Run ablation tests with and without solar-wind context.
+- Sample the synthetic magnetic map along the NASA 42 trajectory.
+- Generate simulated magnetometer readings.
+- Add configurable noise and bias.
+- Export simulated measurement sequences.
 
-### Milestone 5: Real Data Validation
+### Milestone 5: Map-Matching Localizer
 
-- Load Kaguya LMAG data for the six benchmark intervals.
-- Load upstream ACE/WIND/OMNI context for the same intervals.
-- Run the detector on real intervals.
-- Compare recovered events to Nakagawa et al. timing and parameters.
+- Generate candidate orbit offsets around an uncertain prior trajectory.
+- Compare predicted magnetic sequences against measured sequences.
+- Estimate the best position correction.
+- Report prior error, posterior error, and match score.
 
-### Milestone 6: Crustal Anomaly Context
+### Milestone 6: Performance Experiments
 
-- Load Lunar Prospector MAG/ER or a published crustal magnetic-field map.
-- Add features for distance to strong anomaly regions.
-- Test whether detected events cluster near known crustal anomaly contexts.
+- Sweep altitude, noise, bias, map resolution, and sequence length.
+- Compare single-reading matching against sequence matching.
+- Identify where magnetic navigation helps and where it fails.
+- Produce a performance report.
 
-### Milestone 7: Broader Event Search
+### Milestone 7: Real Magnetic Map Ingestion
 
-- Run the detector across longer Kaguya LMAG intervals.
-- Build a candidate event catalog beyond the six published benchmark events.
-- Summarize occurrence patterns by lunar geometry, solar-wind context, and crustal anomaly proximity.
+- Load a Lunar Prospector-derived or published lunar crustal magnetic-field model.
+- Normalize coordinates, units, altitude metadata, and reference frame.
+- Replace the synthetic map with the real map.
+- Re-run localization experiments over real anomaly regions.
 
-## Outputs
+### Milestone 8: Cross-Mission Validation
 
-- `data/benchmarks/nakagawa_2023_events.csv`
-- `data/synthetic/*.parquet`
-- `data/processed/event_catalog.parquet`
-- `reports/synthetic_detection_metrics.md`
-- `reports/nakagawa_reproduction_report.md`
-- `reports/event_occurrence_summary.md`
-- `figures/event_windows/*.png`
+- Use Kaguya LMAG or held-out Lunar Prospector tracks as measurement sequences where feasible.
+- Compare those measurements against the reference map.
+- Document performance, limitations, and failure cases.
+
+## Expected Outputs
+
+- `data/synthetic/42_state_logs/`
+- `data/synthetic/magnetic_map.parquet`
+- `data/synthetic/orbit_tracks_from_42.parquet`
+- `data/synthetic/magnetometer_sequences.parquet`
+- `data/processed/localization_results.parquet`
+- `reports/42_integration_notes.md`
+- `reports/navigation_performance.md`
+- `reports/real_map_ingestion_notes.md`
+- `figures/magnetic_map.png`
+- `figures/localization_error_reduction.png`
 
 ## Risks And Constraints
 
-- Real Kaguya LMAG data access and format conversion may take time.
-- Upstream solar-wind propagation from ACE/WIND to the Moon introduces timing uncertainty.
-- Six published events are useful benchmarks but too few for a robust machine-learning classifier.
-- Visual-inspection criteria from the paper may not map perfectly to an automated detector.
-- Lunar Prospector is valuable for crustal-field context, but Kaguya LMAG is the better source for sub-10-second event detection.
-- Automated detection may find many ambiguous candidates that require careful physical filtering.
+- Magnetic map matching will not work everywhere.
+- Weak or smooth magnetic regions may be ambiguous.
+- A single reading is usually not enough for position estimation.
+- Sensor bias can hide or distort magnetic fingerprints.
+- Attitude uncertainty can degrade vector-field matching.
+- NASA 42 coordinate frames must be handled carefully.
+- Real magnetic map products may use different altitudes, reference frames, and processing assumptions.
+- Upward or downward continuation between map altitudes can introduce uncertainty.
 
 ## Recommended First Build
 
-Start by implementing the synthetic benchmark system:
+Build a NASA 42 plus synthetic magnetic map proof of concept.
 
-1. Encode the six Nakagawa events.
-2. Generate 32 Hz Kaguya-like magnetometer windows around each event.
-3. Inject short magnetic enhancements with matching amplitude and duration.
-4. Build the first rolling-baseline detector.
-5. Report whether the detector recovers all six synthetic benchmark events with low timing, duration, and amplitude error.
+1. Configure a simple low lunar orbit in NASA 42.
+2. Export a time-position-velocity state log.
+3. Generate a synthetic lunar magnetic anomaly map.
+4. Sample the synthetic map along the 42 trajectory.
+5. Add magnetometer noise and bias.
+6. Offset the trajectory to create an uncertain prior.
+7. Use sequence matching to recover the best orbit segment.
+8. Report whether posterior error is lower than prior error.
 
-This creates a testable event-detection foundation before dealing with real archive formats.
+This proves the navigation-aid concept before introducing real lunar magnetic datasets.
