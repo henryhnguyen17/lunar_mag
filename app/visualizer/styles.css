@@ -1,0 +1,521 @@
+:root {
+  color-scheme: dark;
+  --bg: #101218;
+  --panel: #191d27;
+  --panel-2: #202637;
+  --text: #eef3ff;
+  --muted: #9ba8bd;
+  --line: #34405a;
+  --accent: #65d6ff;
+  --accent-2: #ffd166;
+  --danger: #ff6b6b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 28px;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.topbar p,
+.panel-header p,
+.state-card span,
+.status {
+  color: var(--muted);
+}
+
+.file-picker,
+.controls,
+.tabs,
+.state-card,
+.tab-panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+}
+
+.file-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.file-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: auto auto 120px minmax(220px, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.controls button,
+.controls select {
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 0 12px;
+}
+
+.controls button {
+  cursor: pointer;
+}
+
+.controls label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.scrubber-label input {
+  width: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.tab-button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.tab-panel {
+  display: none;
+  padding: 16px;
+  min-height: 420px;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.state-card {
+  padding: 16px;
+}
+
+.state-card span,
+.state-card strong {
+  display: block;
+}
+
+.state-card strong {
+  margin-top: 8px;
+  font-size: 22px;
+}
+
+.generator-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 16px;
+}
+
+.generator-controls,
+.generator-summary {
+  border: 1px solid var(--line);
+  background: #111827;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.generator-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.generator-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.generator-controls label span {
+  color: var(--muted);
+}
+
+.generator-controls input[type="range"] {
+  width: 100%;
+}
+
+.generator-controls button {
+  min-height: 42px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: rgba(101, 214, 255, 0.12);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.generator-summary {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.generator-summary p,
+.generator-summary dd {
+  color: var(--muted);
+}
+
+.generator-summary dl,
+.generator-summary dd {
+  margin: 0;
+}
+
+.generator-summary dl {
+  display: grid;
+  gap: 12px;
+}
+
+.generator-summary dt {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.panel-header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.viz-surface {
+  width: 100%;
+  min-height: 420px;
+  background: #0b0e14;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.orbit3d-surface {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.orbit3d-surface.dragging {
+  cursor: grabbing;
+}
+
+.status {
+  margin-top: 12px;
+  min-height: 20px;
+}
+
+.axis,
+.grid-line {
+  stroke: #45516c;
+  stroke-width: 1;
+}
+
+.axis-tick {
+  stroke: #74819a;
+  stroke-width: 1;
+}
+
+.track-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.marker {
+  fill: var(--accent-2);
+  stroke: #1a1a1a;
+  stroke-width: 2;
+}
+
+.moon-disk {
+  stroke: #dce5f5;
+  stroke-opacity: 0.22;
+  stroke-width: 1.5;
+}
+
+.body-grid {
+  fill: none;
+  stroke: #f2f6ff;
+  stroke-opacity: 0.11;
+  stroke-width: 1;
+}
+
+.orbit-back {
+  fill: none;
+  stroke: #38506d;
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+  opacity: 0.75;
+}
+
+.orbit-front {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  filter: url(#soft-glow);
+}
+
+.satellite-marker {
+  fill: var(--accent-2);
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  filter: url(#soft-glow);
+}
+
+.satellite-hidden {
+  opacity: 0.42;
+}
+
+.satellite-radial {
+  stroke: var(--accent-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  opacity: 0.4;
+}
+
+.rotation-axis {
+  stroke: #ff7aa8;
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  opacity: 0.92;
+}
+
+.axis-pole {
+  fill: #ff7aa8;
+  stroke: #ffffff;
+  stroke-width: 1;
+}
+
+.axis-callout {
+  fill: #ffc1d4;
+  font-size: 12px;
+}
+
+.equator-reference {
+  fill: none;
+  stroke: #9ba8bd;
+  stroke-width: 1.4;
+  stroke-dasharray: 4 5;
+  opacity: 0.6;
+}
+
+.magnetic-cluster {
+  stroke-width: 1.5;
+  filter: url(#soft-glow);
+}
+
+.magnetic-cluster.positive {
+  fill: rgba(101, 214, 255, 0.2);
+  stroke: #65d6ff;
+}
+
+.magnetic-cluster.negative {
+  fill: rgba(255, 122, 168, 0.18);
+  stroke: #ff7aa8;
+}
+
+.magnetic-cluster-core.positive,
+.magnetic-anchor.positive {
+  fill: #65d6ff;
+}
+
+.magnetic-cluster-core.negative,
+.magnetic-anchor.negative {
+  fill: #ff7aa8;
+}
+
+.magnetic-label,
+.axis-callout {
+  pointer-events: none;
+}
+
+.magnetic-label {
+  fill: #cbd5e1;
+  font-size: 11px;
+}
+
+.magnetic-vector-arrow {
+  stroke: #80ffdb;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.magnetic-field-line {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  filter: url(#soft-glow);
+}
+
+.magnetic-field-line.positive {
+  stroke: #65d6ff;
+}
+
+.magnetic-field-line.negative {
+  stroke: #ff7aa8;
+}
+
+.plot-line-alt {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.plot-line-speed {
+  fill: none;
+  stroke: var(--accent-2);
+  stroke-width: 2;
+}
+
+.plot-line-mag,
+.plot-line-radial,
+.plot-line-north,
+.plot-line-east {
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.plot-line-mag,
+.plot-legend.mag {
+  stroke: #80ffdb;
+  fill: #80ffdb;
+}
+
+.plot-line-radial,
+.plot-legend.radial {
+  stroke: #ff7aa8;
+  fill: #ff7aa8;
+}
+
+.plot-line-north,
+.plot-legend.north {
+  stroke: #65d6ff;
+  fill: #65d6ff;
+}
+
+.plot-line-east,
+.plot-legend.east {
+  stroke: #ffd166;
+  fill: #ffd166;
+}
+
+.plot-legend {
+  font-size: 12px;
+}
+
+.time-marker {
+  stroke: var(--danger);
+  stroke-width: 2;
+}
+
+.label {
+  fill: var(--muted);
+  font-size: 13px;
+}
+
+.axis-label,
+.tick-label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.axis-label {
+  fill: var(--text);
+}
+
+@media (max-width: 780px) {
+  .topbar,
+  .controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .state-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .generator-layout,
+  .generator-controls {
+    grid-template-columns: 1fr;
+  }
+}

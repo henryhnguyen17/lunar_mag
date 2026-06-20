@@ -1,0 +1,70 @@
+{
+  "schema": "lunar_mag.visualizer.magnetic_clusters.v1",
+  "dataset_id": "lp-kaguya-clusters-demo",
+  "display_name": "Lunar Prospector / Kaguya magnetic cluster demo layer",
+  "source_note": "Visualization schema seeded with well-known lunar magnetic anomaly regions. This is not yet a calibrated gridded Lunar Prospector MAG/ER or Kaguya LMAG product.",
+  "reference_altitude_km": 30,
+  "units": "nT",
+  "clusters": [
+    {
+      "id": "reiner-gamma",
+      "name": "Reiner Gamma",
+      "latitude_deg": 7.5,
+      "longitude_deg": -59.0,
+      "strength_nt": 38,
+      "sigma_deg": 10,
+      "polarity": 1,
+      "source_hint": "Lunar Prospector MAG/ER and Kaguya LMAG anomaly region"
+    },
+    {
+      "id": "mare-ingenii",
+      "name": "Mare Ingenii swirl region",
+      "latitude_deg": -33.0,
+      "longitude_deg": 163.5,
+      "strength_nt": 28,
+      "sigma_deg": 12,
+      "polarity": -1,
+      "source_hint": "Lunar farside magnetic/swirl region"
+    },
+    {
+      "id": "crisium-antipode",
+      "name": "Crisium antipode region",
+      "latitude_deg": -17.0,
+      "longitude_deg": 118.0,
+      "strength_nt": 24,
+      "sigma_deg": 13,
+      "polarity": 1,
+      "source_hint": "Large basin antipode magnetic anomaly candidate"
+    },
+    {
+      "id": "serenitatis-antipode",
+      "name": "Serenitatis antipode region",
+      "latitude_deg": -24.0,
+      "longitude_deg": 162.0,
+      "strength_nt": 22,
+      "sigma_deg": 11,
+      "polarity": -1,
+      "source_hint": "Large basin antipode magnetic anomaly candidate"
+    },
+    {
+      "id": "descartes",
+      "name": "Descartes highlands",
+      "latitude_deg": -11.0,
+      "longitude_deg": 16.0,
+      "strength_nt": 18,
+      "sigma_deg": 9,
+      "polarity": 1,
+      "source_hint": "Nearside crustal anomaly candidate"
+    },
+    {
+      "id": "gerasimovich",
+      "name": "Gerasimovich region",
+      "latitude_deg": -22.0,
+      "longitude_deg": -123.0,
+      "strength_nt": 30,
+      "sigma_deg": 12,
+      "polarity": -1,
+      "source_hint": "Farside crustal anomaly candidate"
+    }
+  ]
+}

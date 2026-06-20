@@ -1,148 +1,223 @@
-# Lunar Magnetic Map-Matching Navigation Plan
+# Lunar Magnetic Orbiter Simulator Plan
 
 ## Project Goal
 
-Build a lunar orbiter navigation-aid simulator that uses **NASA 42** for spacecraft dynamics and a custom Python layer for lunar magnetic anomaly sensing and map matching.
+Build an interactive lunar-orbiter simulator that visualizes orbit playback, lunar magnetic anomaly clusters, and simulated magnetometer readings. The long-term research goal is to test whether magnetic anomaly sequence matching can act as a supplemental navigation aid for a low lunar orbiter.
 
-The project tests whether a low lunar orbiter can reduce position uncertainty by comparing a sequence of magnetometer readings against a known lunar magnetic anomaly map.
+This is not meant to replace normal orbit determination. The useful question is narrower:
 
-This is not meant to replace normal navigation. It is a supplemental navigation method that could help when an orbiter passes over distinctive lunar crustal magnetic anomalies.
+> Can a lunar orbiter reduce position uncertainty when it flies over distinctive crustal magnetic anomaly regions?
 
-## Core Question
+## Current Direction
 
-Can magnetic anomaly sequence matching improve localization for a low lunar orbiter with an already approximate orbit estimate?
+The project has shifted from a backend-first prototype into an **app-first simulator**:
 
-Supporting questions:
+- The visualizer is a main deliverable, not just a debug plot.
+- The first user workflow starts in an **Orbit Generation** tab.
+- The app can generate a Lunar Prospector-like lunar orbit in the browser.
+- The app plays back the orbit across synchronized tabs.
+- The app visualizes magnetic clusters, magnetic vectors, and field-line-style structures.
+- NASA 42 remains the intended external dynamics source, but the current browser generator is a useful stand-in until a real 42 case is wired in.
 
-- How much does position error improve after magnetic map matching?
-- Which lunar regions produce useful magnetic fingerprints?
-- How sensitive is the method to altitude, magnetometer noise, sensor bias, and map resolution?
-- How much better is sequence matching than using a single magnetic-field reading?
+## Current Status
 
-## High-Level Architecture
+### Implemented
 
-```text
-NASA 42
-  -> spacecraft time, position, velocity, attitude
+- `app/visualizer/index.html`
+  - Tabbed browser app.
+  - Orbit Generation tab.
+  - Playback tab.
+  - 3D Orbit tab.
+  - Ground Track map tab.
+  - Magnetic Map tab.
+  - Plots tab.
 
-Python magnetic sensor layer
-  -> read NASA 42 state logs
-  -> sample lunar magnetic anomaly map
-  -> simulate magnetometer readings
-  -> add noise and bias
+- `app/visualizer/app.js`
+  - Browser-side Lunar Prospector-like orbit generator.
+  - Playback, pause, reset, speed, and timeline scrubber.
+  - Smooth playback with `requestAnimationFrame`.
+  - Interpolated current spacecraft state.
+  - Adjustable 3D view via mouse/trackpad dragging.
+  - Lunar rotation-axis and equator reference indicators.
+  - Magnetic cluster layer loading.
+  - Simulated magnetic vector sampling.
+  - 3D magnetic field-line-style loops.
+  - Magnetic vector and magnitude plots.
 
-Python map-matching layer
-  -> generate candidate orbit offsets
-  -> compare measured vs predicted magnetic sequences
-  -> estimate best position correction
-  -> report localization improvement
-```
+- `app/visualizer/data/magnetic/lp_kaguya_clusters_demo.json`
+  - Demo magnetic cluster data layer.
+  - Seeded with known lunar magnetic anomaly regions.
+  - Uses a schema designed to be replaced by calibrated Lunar Prospector/Kaguya-derived data.
 
-NASA 42 handles spacecraft dynamics. Our code handles magnetic maps, magnetometer simulation, and localization.
+- `scripts/generate_sample_orbit.py`
+  - Generates a NASA 42-compatible state-log fixture.
+  - Defaults to a Lunar Prospector-like nominal polar mapping orbit.
 
-## Why NASA 42
+- `src/lunar_mag/`
+  - NASA 42-style state-log loader.
+  - Body config loader.
+  - Geometry utilities.
+  - Magnetic magnitude utility.
+  - Interpolation and scoring utilities.
+  - Visualizer JSON export.
 
-NASA 42 is a spacecraft dynamics simulator written mainly in C. It can model spacecraft orbit and attitude dynamics and output time-stepped state information.
+- Tests
+  - `python3 -m pytest` currently passes.
 
-Using 42 lets us avoid building an orbital dynamics simulator from scratch. We only need to add the magnetic navigation experiment around its outputs.
+## Important Caveat
 
-42 provides:
+The current magnetic layer is **not yet calibrated mission data**.
 
-- spacecraft position over time
-- spacecraft velocity over time
-- attitude/frame information where available
-- configurable spacecraft dynamics cases
+It is a visualization-ready demo layer that is structured so it can later be replaced by:
 
-Our Python code provides:
+- Lunar Prospector MAG/ER data.
+- Kaguya/SELENE LMAG data.
+- A published gridded lunar crustal magnetic-field model derived from those missions.
 
-- lunar magnetic anomaly map loading or generation
-- magnetic-field interpolation at spacecraft location
-- synthetic magnetometer measurements
-- noise and bias models
-- map-matching localization
-- performance evaluation
+Until real ingestion is done, magnetic values should be treated as simulated/demo values, not scientific measurements.
 
-## Scientific Basis
-
-Earth has analogs for this idea:
-
-- Compasses use magnetic direction for heading.
-- Aircraft, drones, and submarines can use magnetic anomaly maps as GPS-denied navigation aids.
-- Satellites often use magnetometers for attitude determination, though Earth orbit has stronger navigation infrastructure.
-
-The Moon is different:
-
-- It has no strong present-day global dipole field.
-- It has localized crustal magnetic anomalies.
-- There is no deployed lunar GPS-like system.
-- Lunar Prospector and Kaguya measured magnetic fields from orbital altitudes relevant to low lunar orbiters.
-
-The idea is to use anomaly patterns as a map fingerprint.
-
-## Key Principle
-
-A single magnetic reading is usually ambiguous:
+## Architecture
 
 ```text
-|B| = 4.2 nT
+Orbit source
+  -> browser Keplerian generator now
+  -> NASA 42 state logs later
+
+Orbit samples
+  -> timestamp
+  -> latitude, longitude, altitude
+  -> speed
+
+Magnetic layer
+  -> demo cluster schema now
+  -> LP/Kaguya gridded magnetic product later
+
+Magnetometer model
+  -> sample magnetic vector at spacecraft location
+  -> show R/N/E vector and |B|
+  -> later add noise, bias, and sensor-frame transforms
+
+Visualizer app
+  -> Orbit Generation
+  -> Playback
+  -> 3D Orbit
+  -> Ground Track
+  -> Magnetic Map
+  -> Plots
+
+Future navigation layer
+  -> candidate trajectory generation
+  -> magnetic sequence matching
+  -> localization correction estimate
+  -> validation metrics
 ```
 
-Many lunar locations could have the same magnetic magnitude.
+## Current App Workflow
 
-A sequence is more useful:
-
-```text
-3.1 nT -> 3.8 nT -> 6.2 nT -> 5.0 nT -> 2.9 nT
-```
-
-That shape may identify a specific path over a distinctive anomaly region.
+1. Open the visualizer.
+2. Start on **Orbit Generation**.
+3. Adjust orbit sliders:
+   - perilune altitude
+   - apolune altitude
+   - inclination
+   - RAAN
+   - argument of perilune
+   - mean anomaly
+   - duration
+   - time step
+4. Press **Generate Orbit**.
+5. The app switches to **Playback**.
+6. Inspect:
+   - spacecraft state
+   - magnetic vector
+   - nearest magnetic cluster
+7. Use the other tabs:
+   - **3D Orbit:** draggable Moon-centered view with magnetic field-line-style clusters.
+   - **Map:** ground track with cluster overlay.
+   - **Magnetic Map:** cluster map and current magnetic vector.
+   - **Plots:** altitude, speed, and magnetic-field time series.
 
 ## Data Sources
 
-| Dataset | Project Role |
+| Dataset | Role |
 | --- | --- |
-| Lunar Prospector MAG/ER | Primary source for lunar crustal magnetic anomaly context. |
+| Lunar Prospector MAG/ER | Primary mission source for lunar crustal magnetic anomalies. |
 | Kaguya/SELENE LMAG | Independent magnetic-field data for validation or alternate map products. |
-| Published lunar crustal magnetic-field models | Best first real map input if gridded products are easier than raw mission data. |
-| Apollo surface magnetometers | Local surface constraints, not global orbital navigation maps. |
-| LRO LOLA topography | Optional later context for terrain/elevation, not needed for the first build. |
+| Published lunar crustal magnetic-field models | Best near-term real map input if already gridded and altitude-normalized. |
+| NASA 42 | Intended high-fidelity orbit/attitude dynamics source. |
+| LRO LOLA | Optional future terrain/topography context. |
 
-Source portals:
+Useful portals:
 
-- NASA PDS Planetary Plasma Interactions node: https://pds-ppi.igpp.ucla.edu/
+- NASA PDS Planetary Plasma Interactions Node: https://pds-ppi.igpp.ucla.edu/
 - NASA PDS ODE Moon portal: https://ode.rsl.wustl.edu/moon/
 - JAXA DARTS SELENE/Kaguya archive: https://darts.isas.jaxa.jp/planet/pdap/selene/
 - NASA NSSDCA: https://nssdc.gsfc.nasa.gov/
 
-## Altitude Scope
+## Orbit Model
 
-Start with orbital altitudes close to existing magnetic datasets:
+### Current
 
-- Lunar Prospector primary mission: about `100 km`.
-- Lunar Prospector lower phases: tens of kilometers.
-- Kaguya/SELENE LMAG: commonly about `100 km`, with lower phases depending on mission period.
-- Published magnetic maps may use reference altitudes such as `30 km` or `100 km`.
+The app currently uses a browser-side two-body Keplerian lunar orbit generator. Defaults are Lunar Prospector-like:
 
-The first simulator should avoid surface-field extrapolation. It should evaluate magnetic matching at or near the map product's stated reference altitude.
+- near-circular low lunar orbit
+- roughly 100 km altitude
+- near-polar inclination
 
-## Data Model
+This is good enough for app development and magnetic visualization.
 
-### NASA 42 State Record
+### Next
 
-- `timestamp_utc`
-- `position_x_km`
-- `position_y_km`
-- `position_z_km`
-- `velocity_x_km_s`
-- `velocity_y_km_s`
-- `velocity_z_km_s`
-- `attitude_q0`
-- `attitude_q1`
-- `attitude_q2`
-- `attitude_q3`
-- `source_simulator`
+Replace or supplement the browser generator with actual NASA 42 output:
 
-### Orbit Sample Record
+```text
+NASA 42 run
+  -> state/history log
+  -> Python parser
+  -> visualizer orbit JSON
+  -> app playback
+```
+
+The browser generator should remain as a fast scenario tool, but real validation should use NASA 42 or real mission trajectories.
+
+## Magnetic Model
+
+### Current Demo Model
+
+The current magnetic layer treats each anomaly cluster as a Gaussian-like localized source:
+
+```text
+B_cluster ~= strength_nt * exp(-distance_deg^2 / (2 * sigma_deg^2))
+```
+
+The app derives a simple local vector:
+
+- radial component from signed anomaly strength
+- north/east components from the local gradient
+- altitude falloff from reference altitude
+
+This is visually useful and good for prototype behavior, but it is not yet a physically rigorous crustal-field model.
+
+### Future Real Model
+
+Real ingestion should support one or both of:
+
+- gridded field components at reference altitude:
+  - `B_r`
+  - `B_theta` or north/south equivalent
+  - `B_phi` or east/west equivalent
+  - `|B|`
+- cluster summaries extracted from a gridded product:
+  - location
+  - strength
+  - spatial scale
+  - polarity
+  - source dataset
+  - reference altitude
+
+## Data Schemas
+
+### Orbit Sample
 
 - `timestamp_utc`
 - `latitude_deg`
@@ -151,32 +226,45 @@ The first simulator should avoid surface-field extrapolation. It should evaluate
 - `velocity_km_s`
 - `orbit_id`
 
-### Magnetic Map Record
+### Magnetic Cluster
+
+- `id`
+- `name`
+- `latitude_deg`
+- `longitude_deg`
+- `strength_nt`
+- `sigma_deg`
+- `polarity`
+- `source_hint`
+
+### Future Magnetic Grid Cell
 
 - `latitude_deg`
 - `longitude_deg`
 - `altitude_km`
-- `b_x_nt`
-- `b_y_nt`
-- `b_z_nt`
+- `b_radial_nt`
+- `b_north_nt`
+- `b_east_nt`
 - `b_total_nt`
 - `source_id`
 - `reference_frame`
+- `processing_notes`
 
-### Magnetometer Sample Record
+### Future Magnetometer Sample
 
 - `timestamp_utc`
 - `latitude_deg`
 - `longitude_deg`
 - `altitude_km`
-- `b_x_nt`
-- `b_y_nt`
-- `b_z_nt`
+- `b_radial_nt`
+- `b_north_nt`
+- `b_east_nt`
 - `b_total_nt`
 - `sensor_noise_nt`
 - `sensor_bias_nt`
+- `source_map_id`
 
-### Localization Result Record
+### Future Localization Result
 
 - `window_id`
 - `prior_error_km`
@@ -188,149 +276,223 @@ The first simulator should avoid surface-field extrapolation. It should evaluate
 - `altitude_km`
 - `region_label`
 
-## Map-Matching Method
+## Navigation Concept
 
-Start with a simple deterministic method.
+A single magnetic reading is usually ambiguous:
 
-1. Use NASA 42 to generate the true spacecraft trajectory.
-2. Sample the magnetic map along that trajectory.
-3. Add simulated magnetometer noise and bias.
-4. Create an uncertain prior trajectory by offsetting the true trajectory.
-5. Generate candidate trajectories near the prior.
-6. Sample the magnetic map along each candidate trajectory.
-7. Compare measured and predicted magnetic sequences.
-8. Pick the candidate with the lowest mismatch.
-9. Compare prior position error against posterior position error.
+```text
+|B| = 4.2 nT
+```
 
-Initial scoring method:
+Many lunar locations can have similar field strength.
+
+A sequence is more useful:
+
+```text
+3.1 nT -> 3.8 nT -> 6.2 nT -> 5.0 nT -> 2.9 nT
+```
+
+The intended localization method:
+
+1. Start with an approximate orbit estimate.
+2. Sample the magnetic map along the estimated path.
+3. Compare the measured sequence against candidate paths nearby.
+4. Pick the candidate path with the lowest mismatch.
+5. Report whether position uncertainty improved.
+
+Initial score:
 
 ```text
 RMSE = sqrt(mean((B_measured - B_predicted)^2))
 ```
 
-Start with `b_total_nt`. Later, test vector matching with `b_x_nt`, `b_y_nt`, and `b_z_nt`.
+Start with `|B|`; later test vector matching with radial/north/east components.
 
-## Validation Strategy
+## Updated Milestones
 
-The project should measure navigation value, not just generate plots.
+### Milestone 1: App Foundation
 
-Primary metrics:
+Status: **Mostly complete**
 
-- prior position error in kilometers
-- posterior position error in kilometers
-- error reduction in kilometers
-- error reduction percent
-- false-match rate
-- failure rate
-- sensitivity to noise, bias, altitude, map resolution, and window length
+Completed:
 
-Validation cases:
+- Tabbed visualizer.
+- Playback controls.
+- Smooth animation.
+- Timeline scrubber.
+- Orbit Generation tab.
+- Ground-track map.
+- Plots tab.
+- 3D orbit view.
+- Draggable 3D view.
+- Moon rotation-axis/equator reference.
+
+Remaining:
+
+- Improve visual polish.
+- Add optional export/download of generated orbit JSON.
+- Decide whether to keep SVG 3D or migrate to Three.js.
+
+### Milestone 2: Orbit Source Integration
+
+Status: **Partially complete**
+
+Completed:
+
+- NASA 42-compatible CSV fixture.
+- Python parser for NASA 42-style state logs.
+- Lunar Prospector-like generated baseline.
+
+Remaining:
+
+- Run an actual NASA 42 lunar orbit case.
+- Export real 42 state/history logs.
+- Feed those logs into the existing parser.
+- Add UI selector for generated orbit vs NASA 42 orbit file.
+
+### Milestone 3: Magnetic Visualization
+
+Status: **Prototype complete**
+
+Completed:
+
+- Magnetic cluster JSON schema.
+- Demo LP/Kaguya-style cluster layer.
+- Magnetic stats in Playback.
+- Magnetic Map tab.
+- Magnetic cluster overlays on map.
+- 3D field-line-style cluster rendering.
+- Magnetic magnitude and vector-component plots.
+
+Remaining:
+
+- Add toggles:
+  - show/hide clusters
+  - show/hide 3D field lines
+  - show/hide vector arrows
+  - select magnitude vs component plots
+- Add clearer legend and scale bar.
+- Add cluster hover/click details.
+
+### Milestone 4: Real LP/Kaguya Data Ingestion
+
+Status: **Not started**
+
+Tasks:
+
+- Locate practical Lunar Prospector MAG/ER and Kaguya LMAG products.
+- Prefer a published gridded crustal-field model if available.
+- Document:
+  - coordinate frame
+  - altitude/reference radius
+  - units
+  - filtering/processing assumptions
+  - data gaps
+- Convert to app schema.
+- Replace or supplement `lp_kaguya_clusters_demo.json`.
+- Keep demo/synthetic layers explicitly labeled.
+
+### Milestone 5: Magnetometer Sensor Simulation
+
+Status: **Early prototype**
+
+Current:
+
+- The app computes a modeled magnetic vector at current spacecraft location.
+
+Next:
+
+- Add sensor noise.
+- Add sensor bias.
+- Add sampling cadence controls.
+- Add vector-frame assumptions:
+  - lunar radial/north/east
+  - spacecraft body frame
+  - sensor frame
+- Export magnetometer sequence files.
+
+### Milestone 6: Magnetic Navigation Algorithm
+
+Status: **Not started**
+
+Tasks:
+
+- Create an intentionally offset prior trajectory.
+- Generate nearby candidate trajectories.
+- Sample magnetic sequences along each candidate.
+- Compare candidate sequence vs measured sequence.
+- Estimate best correction.
+- Show prior vs corrected path in visualizer.
+- Report error reduction.
+
+### Milestone 7: Validation Experiments
+
+Status: **Not started**
+
+Experiments:
 
 - strong anomaly region
-- weak-field negative-control region
-- high-gradient orbit segment
-- low-gradient orbit segment
+- weak-field control region
+- high-gradient pass
+- low-gradient pass
 - single-reading matching
 - sequence matching
+- altitude sensitivity
+- noise sensitivity
+- bias sensitivity
+- map-resolution sensitivity
 
-Expected result:
+Metrics:
 
-Magnetic matching should help only in regions with distinctive magnetic gradients. It should fail or provide little value in weak, smooth, or repetitive magnetic regions.
-
-## Implementation Milestones
-
-### Milestone 1: Reorient Codebase
-
-- Rename or refactor existing event-detector code as needed.
-- Add schemas for NASA 42 state records, magnetic maps, orbit samples, magnetometer samples, and localization results.
-- Add math utilities for distance, coordinate conversion, interpolation, and RMSE.
-- Add tests for the new utilities.
-
-### Milestone 2: NASA 42 Trajectory Export
-
-- Install or link NASA 42 outside this Python package.
-- Configure a simple low lunar orbit case.
-- Export a state log with time, position, velocity, and attitude.
-- Write a Python loader for the 42 state log.
-- Convert 42 Cartesian states to latitude, longitude, altitude, and speed.
-
-### Milestone 3: Synthetic Magnetic Map
-
-- Generate a 2D lunar magnetic anomaly map with localized Gaussian anomaly clusters.
-- Support map queries by latitude and longitude.
-- Add bilinear interpolation.
-- Export the synthetic map for repeatable tests.
-- Add tests for known interpolation cases.
-
-### Milestone 4: Magnetometer Simulator
-
-- Sample the synthetic magnetic map along the NASA 42 trajectory.
-- Generate simulated magnetometer readings.
-- Add configurable noise and bias.
-- Export simulated measurement sequences.
-
-### Milestone 5: Map-Matching Localizer
-
-- Generate candidate orbit offsets around an uncertain prior trajectory.
-- Compare predicted magnetic sequences against measured sequences.
-- Estimate the best position correction.
-- Report prior error, posterior error, and match score.
-
-### Milestone 6: Performance Experiments
-
-- Sweep altitude, noise, bias, map resolution, and sequence length.
-- Compare single-reading matching against sequence matching.
-- Identify where magnetic navigation helps and where it fails.
-- Produce a performance report.
-
-### Milestone 7: Real Magnetic Map Ingestion
-
-- Load a Lunar Prospector-derived or published lunar crustal magnetic-field model.
-- Normalize coordinates, units, altitude metadata, and reference frame.
-- Replace the synthetic map with the real map.
-- Re-run localization experiments over real anomaly regions.
-
-### Milestone 8: Cross-Mission Validation
-
-- Use Kaguya LMAG or held-out Lunar Prospector tracks as measurement sequences where feasible.
-- Compare those measurements against the reference map.
-- Document performance, limitations, and failure cases.
+- prior error
+- posterior error
+- error reduction
+- false-match rate
+- failure rate
+- match-score confidence
 
 ## Expected Outputs
 
-- `data/synthetic/42_state_logs/`
-- `data/synthetic/magnetic_map.parquet`
-- `data/synthetic/orbit_tracks_from_42.parquet`
-- `data/synthetic/magnetometer_sequences.parquet`
-- `data/processed/localization_results.parquet`
+Current:
+
+- `app/visualizer/`
+- `app/visualizer/index.html`
+- `app/visualizer/app.js`
+- `app/visualizer/styles.css`
+- `app/visualizer/data/sample_orbit.json`
+- `app/visualizer/data/magnetic/lp_kaguya_clusters_demo.json`
+- `scripts/generate_sample_orbit.py`
+- `data/synthetic/nasa42/state_logs/sample_lunar_orbit_state.csv`
 - `reports/42_integration_notes.md`
-- `reports/navigation_performance.md`
+
+Future:
+
+- `data/processed/magnetic_maps/`
+- `data/processed/magnetometer_sequences/`
+- `data/processed/localization_results/`
 - `reports/real_map_ingestion_notes.md`
-- `figures/magnetic_map.png`
+- `reports/navigation_performance.md`
+- `figures/magnetic_sequence_match.png`
 - `figures/localization_error_reduction.png`
 
 ## Risks And Constraints
 
-- Magnetic map matching will not work everywhere.
-- Weak or smooth magnetic regions may be ambiguous.
-- A single reading is usually not enough for position estimation.
-- Sensor bias can hide or distort magnetic fingerprints.
-- Attitude uncertainty can degrade vector-field matching.
-- NASA 42 coordinate frames must be handled carefully.
-- Real magnetic map products may use different altitudes, reference frames, and processing assumptions.
-- Upward or downward continuation between map altitudes can introduce uncertainty.
+- The current magnetic layer is a demo, not calibrated data.
+- Real LP/Kaguya products may use different frames, altitudes, filters, and cadences.
+- Extrapolating anomaly fields between altitudes can introduce large errors.
+- Magnetic navigation will only help over distinctive gradients.
+- Weak or repetitive regions may produce false matches.
+- Sensor bias can distort sequence matching.
+- Attitude uncertainty matters if using vector components instead of magnitude.
+- NASA 42 frame conventions must be handled carefully.
 
-## Recommended First Build
+## Recommended Next Steps
 
-Build a NASA 42 plus synthetic magnetic map proof of concept.
+1. Add UI toggles and legends for magnetic clusters/field lines.
+2. Add generated orbit export/download from the browser.
+3. Run a real NASA 42 lunar orbit case and feed its log into the visualizer.
+4. Find a practical gridded lunar magnetic-field product derived from Lunar Prospector/Kaguya.
+5. Write a converter from that product into the app magnetic schema.
+6. Add noise/bias controls for the magnetometer sequence.
+7. Implement the first simple sequence-matching localizer.
 
-1. Configure a simple low lunar orbit in NASA 42.
-2. Export a time-position-velocity state log.
-3. Generate a synthetic lunar magnetic anomaly map.
-4. Sample the synthetic map along the 42 trajectory.
-5. Add magnetometer noise and bias.
-6. Offset the trajectory to create an uncertain prior.
-7. Use sequence matching to recover the best orbit segment.
-8. Report whether posterior error is lower than prior error.
-
-This proves the navigation-aid concept before introducing real lunar magnetic datasets.

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lunar Mag Playback</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Lunar Mag Orbit Playback</h1>
+          <p>NASA 42 orbit-state playback foundation for the magnetic navigation visualizer.</p>
+        </div>
+        <label class="file-picker">
+          Load orbit JSON
+          <input id="file-input" type="file" accept="application/json,.json" />
+        </label>
+      </header>
+
+      <section class="controls">
+        <button id="play-pause" type="button">Play</button>
+        <button id="reset" type="button">Reset</button>
+        <label>
+          Speed
+          <select id="speed">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="5">5x</option>
+            <option value="10">10x</option>
+          </select>
+        </label>
+        <label class="scrubber-label">
+          Timeline
+          <input id="scrubber" type="range" min="0" max="0" value="0" />
+        </label>
+      </section>
+
+      <nav class="tabs" aria-label="Visualizer tabs">
+        <button class="tab-button active" data-tab="generator" type="button">Orbit Generation</button>
+        <button class="tab-button" data-tab="playback" type="button">Playback</button>
+        <button class="tab-button" data-tab="orbit3d" type="button">3D Orbit</button>
+        <button class="tab-button" data-tab="map" type="button">Map</button>
+        <button class="tab-button" data-tab="magnetic" type="button">Magnetic Map</button>
+        <button class="tab-button" data-tab="plots" type="button">Plots</button>
+      </nav>
+
+      <section id="generator" class="tab-panel active">
+        <div class="panel-header">
+          <h2>Orbit Generation</h2>
+          <p>NASA 42-compatible lunar orbit inputs. Generate a state history, then inspect it in playback, 3D, map, and plots.</p>
+        </div>
+        <div class="generator-layout">
+          <div class="generator-controls">
+            <label>
+              Perilune altitude
+              <span><output id="perilune-altitude-value">99.45</output> km</span>
+              <input id="perilune-altitude" type="range" min="10" max="300" step="0.05" value="99.45" />
+            </label>
+            <label>
+              Apolune altitude
+              <span><output id="apolune-altitude-value">101.20</output> km</span>
+              <input id="apolune-altitude" type="range" min="10" max="500" step="0.05" value="101.2" />
+            </label>
+            <label>
+              Inclination
+              <span><output id="inclination-value">90.55</output> deg</span>
+              <input id="inclination" type="range" min="0" max="180" step="0.05" value="90.55" />
+            </label>
+            <label>
+              RAAN
+              <span><output id="raan-value">35.00</output> deg</span>
+              <input id="raan" type="range" min="0" max="360" step="0.5" value="35" />
+            </label>
+            <label>
+              Argument of perilune
+              <span><output id="argument-of-perilune-value">270.00</output> deg</span>
+              <input id="argument-of-perilune" type="range" min="0" max="360" step="0.5" value="270" />
+            </label>
+            <label>
+              Initial mean anomaly
+              <span><output id="mean-anomaly-value">0.00</output> deg</span>
+              <input id="mean-anomaly" type="range" min="0" max="360" step="0.5" value="0" />
+            </label>
+            <label>
+              Duration
+              <span><output id="duration-value">120</output> min</span>
+              <input id="duration" type="range" min="30" max="360" step="5" value="120" />
+            </label>
+            <label>
+              Time step
+              <span><output id="step-value">5</output> s</span>
+              <input id="step" type="range" min="1" max="30" step="1" value="5" />
+            </label>
+            <button id="generate-orbit" type="button">Generate Orbit</button>
+          </div>
+          <div class="generator-summary">
+            <h3>Lunar Prospector baseline</h3>
+            <p>The default sliders start near Lunar Prospector’s nominal low polar mapping orbit: ~100 km altitude and ~90.55 deg inclination.</p>
+            <dl>
+              <div>
+                <dt>Model</dt>
+                <dd>Two-body Keplerian lunar orbit, exported as NASA 42-like state samples.</dd>
+              </div>
+              <div>
+                <dt>Use</dt>
+                <dd>Generate the baseline trajectory first; later we can replace this browser generator with direct NASA 42 output.</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <section id="playback" class="tab-panel">
+        <div class="state-grid">
+          <article class="state-card">
+            <span>Timestamp</span>
+            <strong id="state-time">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Latitude</span>
+            <strong id="state-lat">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Longitude</span>
+            <strong id="state-lon">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Altitude</span>
+            <strong id="state-alt">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Speed</span>
+            <strong id="state-speed">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Sample</span>
+            <strong id="state-sample">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Center Body</span>
+            <strong id="state-body">-</strong>
+          </article>
+          <article class="state-card">
+            <span>|B|</span>
+            <strong id="state-mag-b">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Magnetic Vector</span>
+            <strong id="state-mag-vector">-</strong>
+          </article>
+          <article class="state-card">
+            <span>Nearest Magnetic Cluster</span>
+            <strong id="state-mag-cluster">-</strong>
+          </article>
+        </div>
+      </section>
+
+      <section id="orbit3d" class="tab-panel">
+        <div class="panel-header">
+          <h2>3D Orbit</h2>
+          <p>Drag the view with your mouse or trackpad to rotate the Moon-centered orbit.</p>
+        </div>
+        <svg id="orbit3d-svg" class="viz-surface orbit3d-surface" viewBox="0 0 960 560" role="img"></svg>
+      </section>
+
+      <section id="map" class="tab-panel">
+        <div class="panel-header">
+          <h2>Ground Track</h2>
+          <p>Longitude/latitude projection with synchronized spacecraft marker.</p>
+        </div>
+        <svg id="map-svg" class="viz-surface" viewBox="0 0 960 460" role="img"></svg>
+      </section>
+
+      <section id="magnetic" class="tab-panel">
+        <div class="panel-header">
+          <h2>Magnetic Clusters</h2>
+          <p>Lunar Prospector/Kaguya-style magnetic anomaly layer with current spacecraft magnetic vector.</p>
+        </div>
+        <svg id="magnetic-svg" class="viz-surface" viewBox="0 0 960 500" role="img"></svg>
+      </section>
+
+      <section id="plots" class="tab-panel">
+        <div class="panel-header">
+          <h2>Trajectory Plots</h2>
+          <p>Altitude, speed, and magnetic-field readings over time with current playback marker.</p>
+        </div>
+        <svg id="plot-svg" class="viz-surface" viewBox="0 0 960 720" role="img"></svg>
+      </section>
+
+      <p id="status" class="status">Loading default orbit data...</p>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

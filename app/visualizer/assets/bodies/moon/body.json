@@ -1,0 +1,24 @@
+{
+  "body_id": "moon",
+  "display_name": "Moon",
+  "radius_km": 1737.4,
+  "color": "#b8bec8",
+  "map_bounds": {
+    "longitude_min_deg": -180,
+    "longitude_max_deg": 180,
+    "latitude_min_deg": -90,
+    "latitude_max_deg": 90
+  },
+  "model_reference": {
+    "name": "NASA 3D Resources",
+    "url": "https://science.nasa.gov/3d-resources/",
+    "candidate_asset": "Apollo 11 - View of the Moon",
+    "status": "approved_source_to_evaluate"
+  },
+  "visual_reference": {
+    "name": "NASA Eyes",
+    "url": "https://science.nasa.gov/eyes/",
+    "status": "interaction_and_presentation_reference"
+  },
+  "asset_notes": "Placeholder config for Moon centerpiece. The app currently generates a sphere/projection. Add approved texture/model assets in this folder later."
+}

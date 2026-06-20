@@ -25,5 +25,4 @@ The loader assumes position is already Moon-centered and in a Moon-fixed frame b
 
 ## Sample File
 
-`data/synthetic/42_state_logs/sample_lunar_orbit_state.csv` is a small fixture for validating the parser and coordinate conversion path.
-
+`data/synthetic/nasa42/state_logs/sample_lunar_orbit_state.csv` is a small fixture for validating the parser and coordinate conversion path.
